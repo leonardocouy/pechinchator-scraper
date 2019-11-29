@@ -25,7 +25,7 @@ class GatrySpider(BaseThreadSpider):
             title = thread_block.css("h3[itemprop='name'] > a::text").extract_first() + " - " + price
             posted_at = thread_block.css(".opcoes .data_postado::attr(title)").extract_first()
 
-            replies = thread_block.css(".opcoes .curtidas > span::text").extract_first().strip()
+            replies = thread_block.css(".opcoes .link-comentarios::text").extract_first().strip()
             visits = thread_block.css(".opcoes .link-comentarios::text").extract_first().strip()
 
             thread.update({
