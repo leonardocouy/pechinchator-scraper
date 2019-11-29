@@ -1,24 +1,31 @@
 import re
-
+import cloudscraper
+import scrapy
 from pechinchator_scraper.items.thread_item import ThreadItem
 from pechinchator_scraper.spiders.base_thread_spider import BaseThreadSpider
-
 THREAD_VISITS_REGEX_PATTERN = r"\d+.*"
-
 HARDMOB_BASE_URL = "https://www.hardmob.com.br/{}"
-
 
 class HardmobSpider(BaseThreadSpider):
     name = "hardmob"
     allowed_domains = ["www.hardmob.com.br"]
-    start_urls = ["http://www.hardmob.com.br/forums/407-Promocoes"]
+    start_urls = ["https://www.hardmob.com.br/forums/407-Promocoes"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+    def start_requests(self):
+        cf_requests = []
+        for url in self.start_urls:
+            token, agent = cloudscraper.get_tokens(url)
+            cf_requests.append(scrapy.Request(url=url,
+                                              cookies=token,
+                                              meta={"token": token, "agent": agent},
+                                              headers={'User-Agent': agent}))
+        return cf_requests
+
     def parse(self, response):
         thread_block_selectors = response.css("ol#threads > .threadbit")
-
         for thread_block in thread_block_selectors:
             thread = ThreadItem()
             thread_id = thread_block.css("li::attr(id)").extract_first()
@@ -44,15 +51,15 @@ class HardmobSpider(BaseThreadSpider):
                 "source_id": self.name,
             })
 
-            yield response.follow(
-                url,
-                callback=self.parse_thread_content,
-                meta={"thread": thread}
+            yield scrapy.Request(url=url,
+              cookies=response.meta["token"],
+              headers={'User-Agent': response.meta["agent"]},
+              callback=self.parse_thread_content,
+              meta={"thread": thread}
             )
 
     def parse_thread_content(self, response):
         thread = response.meta["thread"]
-
         details_block = response.css(".postdetails")
         thread["content_html"] = details_block.css(".postcontent").extract_first()
         thread["posted_at"] = " ".join([
@@ -60,5 +67,4 @@ class HardmobSpider(BaseThreadSpider):
             response.css(".date > .time::text").extract_first(),
         ])
         thread["offer_url"] = details_block.css(".postcontent > a::attr(href)").extract_first()
-
         yield thread
