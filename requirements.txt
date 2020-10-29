@@ -1,5 +1,5 @@
 APScheduler==3.5.3
-python-dotenv==0.9.1
+python-dotenv==0.15.0
 fake-useragent==0.1.11
 html-sanitizer==1.6.3
 Scrapy==1.5.1
