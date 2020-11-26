@@ -9,3 +9,4 @@ Twisted==18.9.0
 pytz==2018.7
 pytelegrambotapi==3.6.6
 cloudscraper==1.2.14
+scrapysentry==0.9.0
