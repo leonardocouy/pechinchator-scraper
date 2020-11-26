@@ -5,13 +5,13 @@ import time
 
 settings = get_project_settings()
 
-ADRENALINE_BASE_URL = "https://adrenaline.uol.com.br{}"
+ADRENALINE_BASE_URL = "https://adrenaline.com.br{}"
 
 
 class AdrenalineSpider(BaseThreadSpider):
     name = "adrenaline"
-    allowed_domains = ["adrenaline.uol.com.br"]
-    start_urls = ["https://adrenaline.uol.com.br/forum/forums/black-friday-2019/"]
+    allowed_domains = ["adrenaline.com.br"]
+    start_urls = ["https://adrenaline.com.br/forum/forums/black-friday-2020/"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -28,17 +28,18 @@ class AdrenalineSpider(BaseThreadSpider):
 
             url = ADRENALINE_BASE_URL.format(
                 title_block.css("a::attr(href)").extract_first()
-            ).strip("/unread")
+            ).strip("/unread").replace("uol.com.br", "com.br")
             title = title_block.css("a::text").extract_first()
             replies, visits = thread_block.css(".pairs.pairs--justified > dd::text").extract()
 
             thread.update({
-                "url": url + "/",
+                "url": url,
                 "title": title,
                 "replies_count": replies,
                 "visits_count": visits,
                 "source_id": self.name,
             })
+
 
             yield response.follow(
                 url,
