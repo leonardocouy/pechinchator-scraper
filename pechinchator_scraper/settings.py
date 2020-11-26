@@ -38,3 +38,8 @@ GCS_CREDENTIALS = b64decode(os.getenv("GCS_CREDENTIALS_BASE64"))
 GCS_COLLECTION_NAME = os.getenv("GCS_COLLECTION_NAME")
 ADRENALINE_LOGIN = os.getenv("ADRENALINE_LOGIN")
 ADRENALINE_PASSWORD = os.getenv("ADRENALINE_PASSWORD")
+SENTRY_DSN = os.getenv("SENTRY_DSN")
+
+EXTENSIONS = {
+    "scrapy_sentry.extensions.Errors":10,
+}
