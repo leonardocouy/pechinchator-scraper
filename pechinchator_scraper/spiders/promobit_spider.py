@@ -25,7 +25,7 @@ class PromobitSpider(BaseThreadSpider):
             url = PROMOBIT_BASE_URL.format(
                 thread_block.css("a.access_url::attr(href)").extract_first()
             )
-            price = "R$ " + thread_block.css("span[itemprop='lowPrice']::text").extract_first()
+            price = "R$ " + thread_block.css("meta[itemprop='lowPrice']").xpath('@content').extract_first()
             title = thread_block.css("a.access_url::text").extract_first() + " - " + price
             posted_at = None
 
