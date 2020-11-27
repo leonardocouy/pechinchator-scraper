@@ -1,45 +1,40 @@
 import re
-import cloudscraper
-import scrapy
+from scrapy_twitter import TwitterUserTimelineRequest, to_item
+from dateutil.parser import parse as date_parse
+
 from pechinchator_scraper.items.thread_item import ThreadItem
 from pechinchator_scraper.spiders.base_thread_spider import BaseThreadSpider
 THREAD_VISITS_REGEX_PATTERN = r"\d+.*"
+THREAD_ID_REGEX_PATTERN = r"(?<=threads\/).+?(?=\-)"
 HARDMOB_BASE_URL = "https://www.hardmob.com.br/{}"
 
 class HardmobSpider(BaseThreadSpider):
     name = "hardmob"
-    allowed_domains = ["www.hardmob.com.br"]
-    start_urls = ["https://www.hardmob.com.br/forums/407-Promocoes"]
 
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        super(HardmobSpider, self).__init__(*args, **kwargs)
+        self.screen_name = "hardmob_promo"
+        self.count = 100
 
     def start_requests(self):
-        cf_requests = []
-        for url in self.start_urls:
-            token, agent = cloudscraper.get_tokens(url)
-            cf_requests.append(scrapy.Request(url=url,
-                                              cookies=token,
-                                              meta={"token": token, "agent": agent},
-                                              headers={'User-Agent': agent}))
-        return cf_requests
+        return [
+            TwitterUserTimelineRequest(
+            screen_name = self.screen_name,
+            count = 20)
+        ]
 
     def parse(self, response):
-        thread_block_selectors = response.css("ol#threads > .threadbit")
-        for thread_block in thread_block_selectors:
-            thread = ThreadItem()
-            thread_id = thread_block.css("li::attr(id)").extract_first()
-            url = HARDMOB_BASE_URL.format(
-                thread_block.css("a.title::attr(href)").extract_first()
-            )
-            title = thread_block.css("a.title::text").extract_first()
-            posted_at = None
+        thread = ThreadItem()
+        tweets = response.tweets[0:20]
 
-            stats_block = thread_block.css("ul.threadstats > li:not(.hidden)")
-
-            replies = stats_block.css(".understate::text").extract_first()
-            visits = stats_block.css("li:not(.hidden)::text").extract()[1]
-            visits = re.search(THREAD_VISITS_REGEX_PATTERN, visits).group()
+        for tweet in tweets:
+            parsed_tweet = to_item(tweet)
+            title = re.sub(r'https?:\/\/.*[\r\n]*', '', parsed_tweet["text"], flags=re.MULTILINE).strip()
+            posted_at = date_parse(parsed_tweet["created_at"])
+            url = parsed_tweet["urls"][0]["expanded_url"]
+            thread_id = re.search(THREAD_ID_REGEX_PATTERN, url).group()
+            replies = 0
+            visits = 0
 
             thread.update({
                 "url": url,
@@ -47,24 +42,8 @@ class HardmobSpider(BaseThreadSpider):
                 "posted_at": posted_at,
                 "replies_count": replies,
                 "visits_count": visits,
-                "thread_id": thread_id.strip("thread_"),
+                "content_html": parsed_tweet["text"],
+                "thread_id": thread_id,
                 "source_id": self.name,
             })
-
-            yield scrapy.Request(url=url,
-              cookies=response.meta["token"],
-              headers={'User-Agent': response.meta["agent"]},
-              callback=self.parse_thread_content,
-              meta={"thread": thread}
-            )
-
-    def parse_thread_content(self, response):
-        thread = response.meta["thread"]
-        details_block = response.css(".postdetails")
-        thread["content_html"] = details_block.css(".postcontent").extract_first()
-        thread["posted_at"] = " ".join([
-            response.css(".date::text").extract_first().strip(),
-            response.css(".date > .time::text").extract_first(),
-        ])
-        thread["offer_url"] = details_block.css(".postcontent > a::attr(href)").extract_first()
-        yield thread
+            yield thread
