@@ -8,6 +8,7 @@ THREAD_VISITS_REGEX_PATTERN = r"\d+.*"
 THREAD_ID_REGEX_PATTERN = r"(?<=threads\/).+?(?=\-)"
 HARDMOB_BASE_URL = "https://www.hardmob.com.br/{}"
 
+
 class HardmobSpider(BaseThreadSpider):
     name = "hardmob"
 
@@ -30,7 +31,7 @@ class HardmobSpider(BaseThreadSpider):
         for tweet in tweets:
             parsed_tweet = to_item(tweet)
             title = re.sub(r'https?:\/\/.*[\r\n]*', '', parsed_tweet["text"], flags=re.MULTILINE).strip()
-            posted_at = date_parse(parsed_tweet["created_at"])
+            posted_at = date_parse(parsed_tweet["created_at"]).strftime("%Y-%m-%d %H:%M:%S")
             url = parsed_tweet["urls"][0]["expanded_url"]
             thread_id = re.search(THREAD_ID_REGEX_PATTERN, url).group()
             replies = 0
